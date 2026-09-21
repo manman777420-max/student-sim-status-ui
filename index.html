@@ -572,251 +572,316 @@
 
 
   <script>
-// ========================================================
-// V1.4B - 远程状态栏数据接收器
-//
-// 数据来源：
-// SillyTavern 酒馆侧状态栏桥接脚本
-//
-// 通信方式：
-// window.postMessage
-//
-// 原则：
-// 1. 远程页面只负责显示
-// 2. 不允许远程页面修改 student_sim
-// 3. 收到合法 ViewModel 后才覆盖 Demo
-// ========================================================
+(() => {
+  "use strict";
 
+  const $ = id => document.getElementById(id);
+  const clamp = (n, min = 0, max = 100) => {
+    n = Number(n);
+    return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : min;
+  };
+  const text = (v, fallback = "—") =>
+    v === undefined || v === null || v === "" ? fallback : String(v);
+  const escapeHTML = value =>
+    text(value, "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
 
-// --------------------------------------------------------
-// 01. 暴露渲染函数
-//
-// 保留这个入口，方便以后调试。
-// --------------------------------------------------------
+  let currentData = null;
+  let hasReceivedRealData = false;
 
-window.renderStudentStatus =
-  renderStudentStatus;
+  const demoData = {
+    world: {
+      date: "2003-08-27",
+      time: "23:45",
+      location: "阳光小学 / 教学楼前报名处",
+      weather: "晴",
+      period: "小学新生报名日"
+    },
+    player: {
+      name: "未登记",
+      gender: "未登记",
+      age: 7,
+      age_text: "7岁",
+      birthday: "—"
+    },
+    attributes: { iq: 50, eq: 50, physique: 50, charm: 50, luck: 50 },
+    condition: {
+      health: 100, energy: 100, stress: 4, happiness: 66,
+      satiety: 80, cleanliness: 80, mood: "平静释然",
+      sleeping: true, temp_status: "无", perm_status: "无"
+    },
+    growth: { experience: 20, talents: "暂无" },
+    appearance: { height: "—", weight: "—", clothes: "—", temperament: "—" },
+    family: {
+      income_level: "—", education_style: "—", parent_personality: "—",
+      father: { name: "江父", relation: "父亲", favor: 70, impression: "" },
+      mother: { name: "江母", relation: "母亲", favor: 72, impression: "" }
+    },
+    school: {
+      school_name: "阳光小学", stage: "小学", grade: 1, semester: "入学前",
+      class_name: "—", academic_level: "未评定", action_left: 2, action_total: 2
+    },
+    resources: { money: 0, items: [] },
+    relationships: [
+      { name: "李小萌", relation: "前桌同学", favor: 1, impression: "", met: true },
+      { name: "王浩", relation: "男生头目", favor: -2, impression: "", met: true }
+    ]
+  };
 
-
-// --------------------------------------------------------
-// 02. 当前数据状态
-// --------------------------------------------------------
-
-let hasReceivedRealData = false;
-
-
-// --------------------------------------------------------
-// 03. 简单验证 ViewModel
-//
-// 不要求每个字段都存在，
-// 但必须至少具备几个核心对象。
-// --------------------------------------------------------
-
-function isValidStudentStatusData(data) {
-
-  if (
-    !data ||
-    typeof data !== "object" ||
-    Array.isArray(data)
-  ) {
-    return false;
+  function setText(id, value, fallback = "—") {
+    const el = $(id);
+    if (el) el.textContent = text(value, fallback);
   }
 
-
-  if (
-    !data.world ||
-    typeof data.world !== "object"
-  ) {
-    return false;
+  function row(label, value) {
+    return `<div class="info-row"><span class="info-label">${escapeHTML(label)}</span><span>${escapeHTML(value)}</span></div>`;
   }
 
-
-  if (
-    !data.player ||
-    typeof data.player !== "object"
-  ) {
-    return false;
+  function favorClass(value) {
+    const n = Number(value) || 0;
+    return n > 0 ? "positive" : n < 0 ? "negative" : "";
   }
 
-
-  if (
-    !data.condition ||
-    typeof data.condition !== "object"
-  ) {
-    return false;
+  function relationCard(person) {
+    if (!person) return "";
+    const favor = Number(person.favor) || 0;
+    const impression = text(person.impression, "");
+    return `
+      <div class="relation">
+        <div>
+          <div class="relation-name">${escapeHTML(text(person.name, "未命名"))}</div>
+          <div class="relation-type">${escapeHTML(text(person.relation, "认识的人"))}</div>
+          ${impression ? `<div class="item-description">${escapeHTML(impression)}</div>` : ""}
+        </div>
+        <div class="favor ${favorClass(favor)}">${favor}</div>
+      </div>`;
   }
 
-
-  if (
-    !data.attributes ||
-    typeof data.attributes !== "object"
-  ) {
-    return false;
+  function renderCore(condition = {}) {
+    const items = [
+      ["健康", condition.health],
+      ["精力", condition.energy],
+      ["压力", condition.stress],
+      ["快乐", condition.happiness]
+    ];
+    $("core-status").innerHTML = items.map(([label, value]) => {
+      const n = clamp(value);
+      return `
+        <div class="core-card">
+          <div class="core-head">
+            <span>${label}</span>
+            <span class="core-value">${escapeHTML(text(value, 0))}</span>
+          </div>
+          <div class="bar"><div style="width:${n}%"></div></div>
+        </div>`;
+    }).join("");
   }
 
+  function renderCharacter(data) {
+    const a = data.attributes || {};
+    const c = data.condition || {};
+    const g = data.growth || {};
+    const ap = data.appearance || {};
 
-  return true;
-}
+    const attrs = [
+      ["智商", a.iq], ["情商", a.eq], ["体魄", a.physique],
+      ["魅力", a.charm], ["幸运", a.luck]
+    ];
+    $("attributes").innerHTML = attrs.map(([name, value]) => `
+      <div class="stat">
+        <div class="stat-name">${name}</div>
+        <div class="stat-value">${escapeHTML(text(value, 0))}</div>
+      </div>`).join("");
 
+    $("condition-info").innerHTML = [
+      row("饱腹", text(c.satiety, 0)),
+      row("清洁", text(c.cleanliness, 0)),
+      row("睡眠", c.sleeping === true ? "睡眠中" : "清醒"),
+      row("零花钱", text(data.resources?.money, 0)),
+      row("天赋", text(g.talents, "暂无")),
+      row("身高", text(ap.height)),
+      row("体重", text(ap.weight)),
+      row("衣着", text(ap.clothes)),
+      row("气质", text(ap.temperament))
+    ].join("");
 
-// --------------------------------------------------------
-// 04. 接收酒馆 postMessage
-//
-// 约定消息格式：
-//
-// {
-//   source: "student-sim",
-//   type: "STATUS_UPDATE",
-//   version: "1.4B",
-//   payload: ViewModel
-// }
-// --------------------------------------------------------
-
-window.addEventListener(
-  "message",
-
-  event => {
-
-    const message =
-      event.data;
-
-
-    if (
-      !message ||
-      typeof message !== "object"
-    ) {
-      return;
-    }
-
-
-    // 只处理属于学生时代模拟器的数据。
-    if (
-      message.source !== "student-sim"
-    ) {
-      return;
-    }
-
-
-    // 只处理状态更新。
-    if (
-      message.type !== "STATUS_UPDATE"
-    ) {
-      return;
-    }
-
-
-    const data =
-      message.payload;
-
-
-    if (
-      !isValidStudentStatusData(data)
-    ) {
-
-      console.warn(
-        "[学生时代模拟器][远程状态栏] 收到的数据格式不合法：",
-        data
-      );
-
-      return;
-    }
-
-
-    try {
-
-      renderStudentStatus(
-        data
-      );
-
-
-      hasReceivedRealData =
-        true;
-
-
-      document.body.dataset.statusSource =
-        "live";
-
-
-      console.log(
-        "[学生时代模拟器][远程状态栏] 已接收真实状态数据：",
-        data
-      );
-
-    } catch (error) {
-
-      console.error(
-        "[学生时代模拟器][远程状态栏] 渲染真实数据失败：",
-        error
-      );
-    }
+    const tags = [];
+    const temp = text(c.temp_status, "无");
+    const perm = text(c.perm_status, "无");
+    if (temp !== "无" && temp !== "—") tags.push(temp);
+    if (perm !== "无" && perm !== "—") tags.push(perm);
+    $("status-tags").innerHTML = tags.length
+      ? tags.map(v => `<span class="tag">${escapeHTML(v)}</span>`).join("")
+      : `<span class="tag">当前无特殊状态</span>`;
   }
-);
 
+  function renderSchool(data) {
+    const s = data.school || {};
+    $("school-info").innerHTML = [
+      row("学校", text(s.school_name)),
+      row("阶段", text(s.stage)),
+      row("年级", text(s.grade)),
+      row("学期", text(s.semester)),
+      row("班级", text(s.class_name)),
+      row("学业水平", text(s.academic_level)),
+      row("行动次数", `${text(s.action_left, 0)} / ${text(s.action_total, 0)}`)
+    ].join("");
+  }
 
-// --------------------------------------------------------
-// 05. 告诉父页面：状态栏已经准备完成
-//
-// 后续酒馆 iframe 加载完成后，
-// 可以收到这个消息并立即发送一次真实状态。
-// --------------------------------------------------------
+  function renderRelations(data) {
+    const f = data.family || {};
+    const family = [f.father, f.mother].filter(Boolean);
+    $("family-relations").innerHTML = family.length
+      ? family.map(relationCard).join("")
+      : `<div class="empty">暂无家庭关系数据</div>`;
 
-function notifyParentReady() {
+    const npcs = Array.isArray(data.relationships)
+      ? data.relationships.filter(p => p && p.met !== false)
+      : [];
+    $("npc-relations").innerHTML = npcs.length
+      ? npcs.map(relationCard).join("")
+      : `<div class="empty">暂无人物关系</div>`;
+  }
 
-  if (
-    window.parent &&
-    window.parent !== window
-  ) {
+  function renderItems(data) {
+    const items = Array.isArray(data.resources?.items) ? data.resources.items : [];
+    $("item-list").innerHTML = items.length
+      ? items.map(item => `
+          <div class="item">
+            <div class="item-head">
+              <span>${escapeHTML(text(item.name, "未命名物品"))}</span>
+              <span>× ${escapeHTML(text(item.count, 0))}</span>
+            </div>
+            ${item.description ? `<div class="item-description">${escapeHTML(item.description)}</div>` : ""}
+          </div>`).join("")
+      : `<div class="empty">背包里暂时没有物品</div>`;
+  }
 
-    window.parent.postMessage(
-      {
-        source:
-          "student-sim-status-ui",
+  function renderStudentStatus(data) {
+    if (!data || typeof data !== "object") return;
+    currentData = data;
 
-        type:
-          "STATUS_UI_READY",
+    const w = data.world || {};
+    const p = data.player || {};
+    const c = data.condition || {};
+    const g = data.growth || {};
 
-        version:
-          "1.4B"
-      },
-      "*"
+    setText("date", w.date);
+    setText("time", w.time);
+    setText("weather", w.weather);
+    setText("location", w.location);
+    setText("period", w.period);
+    setText("player-name", p.name, "未登记");
+    setText("player-age", p.age_text || (p.age !== undefined ? `${p.age}岁` : "—"));
+    setText("player-gender", p.gender, "未登记");
+    setText("experience", g.experience, 0);
+    setText("mood", c.mood);
+
+    renderCore(c);
+    renderCharacter(data);
+    renderSchool(data);
+    renderRelations(data);
+    renderItems(data);
+
+    requestHeightReport();
+  }
+
+  window.renderStudentStatus = renderStudentStatus;
+
+  function activatePage(page) {
+    document.querySelectorAll(".tab").forEach(button => {
+      button.classList.toggle("active", button.dataset.page === page);
+    });
+    document.querySelectorAll(".page").forEach(panel => {
+      panel.classList.toggle("active", panel.id === `page-${page}`);
+    });
+    requestHeightReport();
+  }
+
+  document.querySelectorAll(".tab").forEach(button => {
+    button.addEventListener("click", () => activatePage(button.dataset.page));
+  });
+
+  function isValidStudentStatusData(data) {
+    return !!(
+      data &&
+      typeof data === "object" &&
+      !Array.isArray(data) &&
+      data.world && typeof data.world === "object" &&
+      data.player && typeof data.player === "object" &&
+      data.condition && typeof data.condition === "object" &&
+      data.attributes && typeof data.attributes === "object"
     );
   }
-}
 
+  function notifyParentReady() {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({
+        source: "student-sim-status-ui",
+        type: "STATUS_UI_READY",
+        version: "1.4C-UI"
+      }, "*");
+    }
+  }
 
-// --------------------------------------------------------
-// 06. 独立浏览器预览模式
-//
-// 如果直接打开 GitHub Pages，
-// 没有酒馆给它发送数据，
-// 就继续显示 demoData。
-// --------------------------------------------------------
+  let heightTimer = null;
+  function reportHeight() {
+    if (!(window.parent && window.parent !== window)) return;
+    const panel = document.querySelector(".panel");
+    const bodyHeight = Math.ceil(document.documentElement.scrollHeight);
+    const panelHeight = panel ? Math.ceil(panel.getBoundingClientRect().bottom + 14) : bodyHeight;
+    const height = Math.max(300, bodyHeight, panelHeight);
+    window.parent.postMessage({
+      source: "student-sim-status-ui",
+      type: "STATUS_HEIGHT",
+      version: "1.4C-UI",
+      height
+    }, "*");
+  }
+  function requestHeightReport() {
+    clearTimeout(heightTimer);
+    heightTimer = setTimeout(reportHeight, 30);
+  }
 
-renderStudentStatus(
-  demoData
-);
+  window.addEventListener("message", event => {
+    const message = event.data;
+    if (!message || typeof message !== "object") return;
+    if (message.source !== "student-sim" || message.type !== "STATUS_UPDATE") return;
 
+    const data = message.payload;
+    if (!isValidStudentStatusData(data)) {
+      console.warn("[学生时代模拟器][远程状态栏] 收到的数据格式不合法：", data);
+      return;
+    }
 
-document.body.dataset.statusSource =
-  "demo";
+    try {
+      renderStudentStatus(data);
+      hasReceivedRealData = true;
+      document.body.dataset.statusSource = "live";
+      console.log("[学生时代模拟器][远程状态栏] 已接收真实状态数据：", data);
+    } catch (error) {
+      console.error("[学生时代模拟器][远程状态栏] 渲染真实数据失败：", error);
+    }
+  });
 
+  window.addEventListener("load", requestHeightReport);
+  window.addEventListener("resize", requestHeightReport);
 
-console.log(
-  "[学生时代模拟器][远程状态栏] 当前为 Demo 预览模式。"
-);
+  if ("ResizeObserver" in window) {
+    new ResizeObserver(requestHeightReport).observe(document.querySelector(".panel"));
+  }
 
+  renderStudentStatus(demoData);
+  document.body.dataset.statusSource = "demo";
+  activatePage("character");
+  notifyParentReady();
 
-// --------------------------------------------------------
-// 07. 页面准备完成
-// --------------------------------------------------------
-
-notifyParentReady();
-
-
-console.log(
-  "[学生时代模拟器][远程状态栏] V1.4B 数据接收器已启动。"
-);
-
+  console.log("[学生时代模拟器][远程状态栏] V1.4C-UI 已启动。");
+})();
   </script>
 
 </body>
