@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>学生时代模拟器 · 状态栏</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #f4efe6;
+      --paper: rgba(255, 253, 248, 0.96);
+      --paper-2: #f8f3ea;
+      --ink: #3c3833;
+      --muted: #8c8378;
+      --line: #ded5c9;
+      --accent: #748c78;
+      --accent-soft: #e6ede5;
+      --warm: #b58a66;
+      --danger: #a96f69;
+      --shadow: 0 10px 30px rgba(63, 52, 40, 0.08);
+    }
+
+    body {
+      margin: 0;
+      padding: 14px;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(255,255,255,.8), transparent 35%),
+        var(--bg);
+      color: var(--ink);
+      font-family:
+        "Noto Sans SC",
+        "Microsoft YaHei",
+        system-ui,
+        sans-serif;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .panel {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+
+    /* =========================
+       顶部
+       ========================= */
+
+    .hero {
+      padding: 20px 20px 17px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(
+          135deg,
+          rgba(230,237,229,.9),
+          rgba(255,253,248,.95)
+        );
+    }
+
+    .hero-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .date {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: .08em;
+    }
+
+    .time {
+      margin-top: 3px;
+      font-family: Georgia, serif;
+      font-size: 30px;
+      line-height: 1;
+    }
+
+    .weather {
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,.65);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .location {
+      margin-top: 14px;
+      font-size: 14px;
+    }
+
+    .period {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* =========================
+       人物概要
+       ========================= */
+
+    .summary {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .name {
+      font-size: 19px;
+      font-weight: 700;
+    }
+
+    .meta {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .mood {
+      align-self: center;
+      padding: 7px 11px;
+      border-radius: 10px;
+      background: var(--accent-soft);
+      color: #536858;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    /* =========================
+       核心状态
+       ========================= */
+
+    .core {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .core-card {
+      padding: 10px;
+      border-radius: 12px;
+      background: var(--paper-2);
+    }
+
+    .core-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 7px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .core-value {
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .bar {
+      height: 5px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: #e5ddd2;
+    }
+
+    .bar > div {
+      height: 100%;
+      border-radius: inherit;
+      background: var(--accent);
+      transition: width .3s ease;
+    }
+
+    /* =========================
+       Tab
+       ========================= */
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      padding: 8px;
+      gap: 5px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(248,243,234,.65);
+    }
+
+    .tab {
+      border: 0;
+      padding: 9px 6px;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font: inherit;
+      font-size: 12px;
+    }
+
+    .tab:hover {
+      background: rgba(255,255,255,.7);
+    }
+
+    .tab.active {
+      background: var(--paper);
+      color: var(--ink);
+      box-shadow: 0 2px 8px rgba(60,50,40,.06);
+      font-weight: 600;
+    }
+
+    .content {
+      min-height: 220px;
+      padding: 18px 20px 21px;
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    /* =========================
+       通用布局
+       ========================= */
+
+    .section-title {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: .1em;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+
+    .stat {
+      padding: 11px 8px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      text-align: center;
+    }
+
+    .stat-name {
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .stat-value {
+      margin-top: 3px;
+      font-family: Georgia, serif;
+      font-size: 20px;
+    }
+
+    .info-list {
+      display: grid;
+      gap: 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 10px 2px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+
+    .info-label {
+      color: var(--muted);
+    }
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 13px;
+    }
+
+    .tag {
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: #5c6e60;
+      font-size: 11px;
+    }
+
+    /* =========================
+       关系
+       ========================= */
+
+    .relation-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .relation {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      padding: 12px 13px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+
+    .relation-name {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .relation-type {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .favor {
+      align-self: center;
+      min-width: 36px;
+      padding: 5px 7px;
+      border-radius: 8px;
+      background: var(--paper-2);
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .favor.positive {
+      color: #56725d;
+    }
+
+    .favor.negative {
+      color: var(--danger);
+    }
+
+    /* =========================
+       背包
+       ========================= */
+
+    .item-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .item {
+      padding: 12px 13px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+
+    .item-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .item-description {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .empty {
+      padding: 35px 10px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 12px;
+    }
+
+    .footer {
+      padding: 9px 14px;
+      border-top: 1px solid var(--line);
+      color: #aaa096;
+      text-align: center;
+      font-size: 9px;
+      letter-spacing: .08em;
+    }
+
+    @media (max-width: 560px) {
+      body {
+        padding: 8px;
+      }
+
+      .panel {
+        border-radius: 14px;
+      }
+
+      .core {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stat-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .hero,
+      .summary,
+      .core,
+      .content {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="app">
+    <section class="panel">
+
+      <!-- 顶部世界信息 -->
+      <header class="hero">
+
+        <div class="hero-top">
+          <div>
+            <div class="date" id="date">2003-08-27</div>
+            <div class="time" id="time">23:45</div>
+          </div>
+
+          <div class="weather" id="weather">晴</div>
+        </div>
+
+        <div class="location" id="location">
+          阳光小学 / 教学楼前报名处
+        </div>
+
+        <div class="period" id="period">
+          小学新生报名日
+        </div>
+
+      </header>
+
+
+      <!-- 主角概要 -->
+      <section class="summary">
+
+        <div>
+          <div class="name" id="player-name">未登记</div>
+
+          <div class="meta">
+            <span id="player-age">7岁</span>
+            ·
+            <span id="player-gender">未登记</span>
+            ·
+            阅历
+            <span id="experience">20</span>
+          </div>
+        </div>
+
+        <div class="mood" id="mood">
+          平静释然
+        </div>
+
+      </section>
+
+
+      <!-- 四项核心状态 -->
+      <section class="core" id="core-status"></section>
+
+
+      <!-- Tabs -->
+      <nav class="tabs">
+
+        <button class="tab active" data-page="character">
+          角色
+        </button>
+
+        <button class="tab" data-page="school">
+          学校
+        </button>
+
+        <button class="tab" data-page="relations">
+          关系
+        </button>
+
+        <button class="tab" data-page="items">
+          背包
+        </button>
+
+      </nav>
+
+
+      <section class="content">
+
+        <!-- 角色 -->
+        <div class="page active" id="page-character">
+
+          <h3 class="section-title">主要属性</h3>
+
+          <div class="stat-grid" id="attributes"></div>
+
+          <h3 class="section-title" style="margin-top:20px;">
+            当前状态
+          </h3>
+
+          <div class="info-list" id="condition-info"></div>
+
+          <div class="tag-list" id="status-tags"></div>
+
+        </div>
+
+
+        <!-- 学校 -->
+        <div class="page" id="page-school">
+
+          <h3 class="section-title">校园信息</h3>
+
+          <div class="info-list" id="school-info"></div>
+
+        </div>
+
+
+        <!-- 关系 -->
+        <div class="page" id="page-relations">
+
+          <h3 class="section-title">家庭</h3>
+
+          <div class="relation-list" id="family-relations"></div>
+
+          <h3 class="section-title" style="margin-top:20px;">
+            人物关系
+          </h3>
+
+          <div class="relation-list" id="npc-relations"></div>
+
+        </div>
+
+
+        <!-- 背包 -->
+        <div class="page" id="page-items">
+
+          <h3 class="section-title">
+            持有物品
+          </h3>
+
+          <div class="item-list" id="item-list"></div>
+
+        </div>
+
+      </section>
+
+
+      <footer class="footer">
+        STUDENT ERA · STATUS
+      </footer>
+
+    </section>
+  </main>
+
+
+  <script>
+    // ========================================================
+    // 第一版测试数据
+    //
+    // 后续 V1.4B 会由酒馆传入真实 ViewModel，
+    // 不再依赖这里的测试数据。
+    // ========================================================
+
+    const demoData = {
+      world: {
+        date: "2003-08-27",
+        time: "23:45",
+        location: "阳光小学 / 教学楼前报名处",
+        weather: "晴",
+        period: "小学新生报名日"
+      },
+
+      player: {
+        name: "未登记",
+        gender: "未登记",
+        age: 7,
+        age_text: "7岁"
+      },
+
+      attributes: {
+        iq: 50,
+        eq: 50,
+        physique: 50,
+        charm: 50,
+        luck: 50
+      },
+
+      condition: {
+        health: 100,
+        energy: 100,
+        stress: 4,
+        happiness: 66,
+        satiety: 80,
+        cleanliness: 80,
+        mood: "平静释然",
+        sleeping: true,
+        temp_status: "无",
+        perm_status: "无"
+      },
+
+      growth: {
+        experience: 20,
+        talents: "暂无"
+      },
+
+      school: {
+        school_name: "阳光小学",
+        stage: "小学",
+        grade: 1,
+        semester: "入学前",
+        class_name: "—",
+        academic_level: "未评定",
+        action_left: 2,
+        action_total: 2
+      },
+
+      family: {
+        father: {
+          name: "江父",
+          relation: "父亲",
+          favor: 70,
+          impression: ""
+        },
+
+        mother: {
+          name: "江母",
+          relation: "母亲",
+          favor: 72,
+          impression: ""
+        }
+      },
+
+      resources: {
+        money: 0,
+
+        items: [
+          {
+            name: "《小朋友的心理世界》",
+            count: 1,
+            description: "淡蓝色封面儿童心理学入门书"
+          }
+        ]
+      },
+
+      relationships: [
+        {
+          name: "李小萌",
+          relation: "前桌同学",
+          favor: 1,
+          impression: "觉得对方有些特别"
+        },
+
+        {
+          name: "王浩",
+          relation: "男生头目",
+          favor: -2,
+          impression: "对主角暂时没有太多好感"
+        }
+      ]
+    };
+
+
+    // ========================================================
+    // 工具
+    // ========================================================
+
+    function text(value, fallback = "—") {
+      if (
+        value === undefined ||
+        value === null ||
+        value === ""
+      ) {
+        return fallback;
+      }
+
+      return String(value);
+    }
+
+
+    function clamp(value) {
+      const number = Number(value);
+
+      if (!Number.isFinite(number)) {
+        return 0;
+      }
+
+      return Math.max(
+        0,
+        Math.min(100, number)
+      );
+    }
+
+
+    function escapeHtml(value) {
+      return text(value, "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+
+    // ========================================================
+    // 核心状态
+    // ========================================================
+
+    function renderCoreStatus(data) {
+
+      const items = [
+        ["健康", data.condition.health],
+        ["精力", data.condition.energy],
+        ["压力", data.condition.stress],
+        ["快乐", data.condition.happiness]
+      ];
+
+      document.getElementById("core-status").innerHTML =
+        items.map(([name, value]) => `
+          <div class="core-card">
+            <div class="core-head">
+              <span>${name}</span>
+              <span class="core-value">${escapeHtml(value)}</span>
+            </div>
+
+            <div class="bar">
+              <div style="width:${clamp(value)}%"></div>
+            </div>
+          </div>
+        `).join("");
+    }
+
+
+    // ========================================================
+    // 属性
+    // ========================================================
+
+    function renderAttributes(data) {
+
+      const attrs = [
+        ["智商", data.attributes.iq],
+        ["情商", data.attributes.eq],
+        ["体魄", data.attributes.physique],
+        ["魅力", data.attributes.charm],
+        ["幸运", data.attributes.luck]
+      ];
+
+      document.getElementById("attributes").innerHTML =
+        attrs.map(([name, value]) => `
+          <div class="stat">
+            <div class="stat-name">${name}</div>
+            <div class="stat-value">${escapeHtml(value)}</div>
+          </div>
+        `).join("");
+    }
+
+
+    // ========================================================
+    // 当前状态
+    // ========================================================
+
+    function renderCondition(data) {
+
+      const rows = [
+        ["饱腹", data.condition.satiety],
+        ["清洁", data.condition.cleanliness],
+        [
+          "睡眠",
+          data.condition.sleeping
+            ? "睡眠中"
+            : "清醒"
+        ],
+        ["零花钱", data.resources.money],
+        ["天赋", data.growth.talents]
+      ];
+
+      document.getElementById("condition-info").innerHTML =
+        rows.map(([label, value]) => `
+          <div class="info-row">
+            <span class="info-label">${label}</span>
+            <span>${escapeHtml(value)}</span>
+          </div>
+        `).join("");
+
+
+      const tags = [];
+
+      if (
+        data.condition.temp_status &&
+        data.condition.temp_status !== "无"
+      ) {
+        tags.push(data.condition.temp_status);
+      }
+
+      if (
+        data.condition.perm_status &&
+        data.condition.perm_status !== "无"
+      ) {
+        tags.push(data.condition.perm_status);
+      }
+
+
+      document.getElementById("status-tags").innerHTML =
+        tags.length
+          ? tags
+              .map(tag =>
+                `<span class="tag">${escapeHtml(tag)}</span>`
+              )
+              .join("")
+          : `<span class="tag">当前无特殊状态</span>`;
+    }
+
+
+    // ========================================================
+    // 学校
+    // ========================================================
+
+    function renderSchool(data) {
+
+      const school = data.school;
+
+      const rows = [
+        ["学校", school.school_name],
+        ["阶段", school.stage],
+        ["年级", school.grade],
+        ["学期", school.semester],
+        ["班级", school.class_name],
+        ["学业", school.academic_level],
+        [
+          "剩余行动",
+          `${school.action_left}/${school.action_total}`
+        ]
+      ];
+
+      document.getElementById("school-info").innerHTML =
+        rows.map(([label, value]) => `
+          <div class="info-row">
+            <span class="info-label">${label}</span>
+            <span>${escapeHtml(value)}</span>
+          </div>
+        `).join("");
+    }
+
+
+    // ========================================================
+    // 关系
+    // ========================================================
+
+    function favorClass(value) {
+
+      const number = Number(value);
+
+      if (number > 0) {
+        return "positive";
+      }
+
+      if (number < 0) {
+        return "negative";
+      }
+
+      return "";
+    }
+
+
+    function renderRelationCard(person) {
+
+      return `
+        <div class="relation">
+          <div>
+            <div class="relation-name">
+              ${escapeHtml(person.name)}
+            </div>
+
+            <div class="relation-type">
+              ${escapeHtml(person.relation)}
+            </div>
+          </div>
+
+          <div class="favor ${favorClass(person.favor)}">
+            ${Number(person.favor) > 0 ? "+" : ""}
+            ${escapeHtml(person.favor)}
+          </div>
+        </div>
+      `;
+    }
+
+
+    function renderRelations(data) {
+
+      const family = [
+        data.family.father,
+        data.family.mother
+      ].filter(Boolean);
+
+      document.getElementById("family-relations").innerHTML =
+        family.length
+          ? family
+              .map(renderRelationCard)
+              .join("")
+          : `<div class="empty">暂无家庭信息</div>`;
+
+
+      const npcs =
+        Array.isArray(data.relationships)
+          ? data.relationships
+          : [];
+
+      document.getElementById("npc-relations").innerHTML =
+        npcs.length
+          ? npcs
+              .map(renderRelationCard)
+              .join("")
+          : `<div class="empty">暂未认识其他人物</div>`;
+    }
+
+
+    // ========================================================
+    // 背包
+    // ========================================================
+
+    function renderItems(data) {
+
+      const items =
+        Array.isArray(data.resources.items)
+          ? data.resources.items
+          : [];
+
+
+      document.getElementById("item-list").innerHTML =
+        items.length
+          ? items.map(item => `
+              <div class="item">
+
+                <div class="item-head">
+                  <span>${escapeHtml(item.name)}</span>
+                  <span>×${escapeHtml(item.count)}</span>
+                </div>
+
+                ${
+                  item.description
+                    ? `
+                      <div class="item-description">
+                        ${escapeHtml(item.description)}
+                      </div>
+                    `
+                    : ""
+                }
+
+              </div>
+            `).join("")
+
+          : `<div class="empty">背包空空如也</div>`;
+    }
+
+
+    // ========================================================
+    // 总渲染
+    // ========================================================
+
+    function renderStudentStatus(data) {
+
+      document.getElementById("date").textContent =
+        text(data.world.date);
+
+      document.getElementById("time").textContent =
+        text(data.world.time);
+
+      document.getElementById("weather").textContent =
+        text(data.world.weather);
+
+      document.getElementById("location").textContent =
+        text(data.world.location);
+
+      document.getElementById("period").textContent =
+        text(data.world.period);
+
+
+      document.getElementById("player-name").textContent =
+        text(data.player.name, "未登记");
+
+      document.getElementById("player-age").textContent =
+        text(
+          data.player.age_text,
+          `${data.player.age ?? "—"}岁`
+        );
+
+      document.getElementById("player-gender").textContent =
+        text(data.player.gender, "未登记");
+
+      document.getElementById("experience").textContent =
+        text(data.growth.experience, "0");
+
+      document.getElementById("mood").textContent =
+        text(data.condition.mood);
+
+
+      renderCoreStatus(data);
+      renderAttributes(data);
+      renderCondition(data);
+      renderSchool(data);
+      renderRelations(data);
+      renderItems(data);
+    }
+
+
+    // ========================================================
+    // Tab切换
+    // ========================================================
+
+    document
+      .querySelectorAll(".tab")
+      .forEach(button => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            const page =
+              button.dataset.page;
+
+
+            document
+              .querySelectorAll(".tab")
+              .forEach(tab =>
+                tab.classList.remove("active")
+              );
+
+
+            document
+              .querySelectorAll(".page")
+              .forEach(panel =>
+                panel.classList.remove("active")
+              );
+
+
+            button.classList.add("active");
+
+
+            document
+              .getElementById(`page-${page}`)
+              .classList.add("active");
+          }
+        );
+      });
+
+
+    // ========================================================
+    // 为 V1.4B 预留的数据入口
+    //
+    // 后续酒馆只需要把 ViewModel 传进来，
+    // 调用 renderStudentStatus(data) 即可。
+    // ========================================================
+
+    window.renderStudentStatus =
+      renderStudentStatus;
+
+
+    // ========================================================
+    // 首次测试
+    // ========================================================
+
+    renderStudentStatus(
+      demoData
+    );
+
+  </script>
+
+</body>
+</html>
