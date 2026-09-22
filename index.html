@@ -305,6 +305,109 @@
     }
 
     /* =========================
+       本轮变化
+       ========================= */
+
+    .change-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .change-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--paper-2);
+      font-size: 11px;
+      line-height: 1.25;
+    }
+
+    .change-chip.positive {
+      border-color: #cddccd;
+      background: #edf4ec;
+      color: #54705b;
+    }
+
+    .change-chip.negative {
+      border-color: #e1ceca;
+      background: #f7ecea;
+      color: var(--danger);
+    }
+
+    .change-chip.neutral {
+      color: var(--muted);
+    }
+
+    .change-delta {
+      font-family: Georgia, serif;
+      font-weight: 700;
+    }
+
+    /* =========================
+       天赋卡片
+       ========================= */
+
+    .talent-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .talent-card {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--paper-2);
+    }
+
+    .talent-card summary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      cursor: pointer;
+      list-style: none;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .talent-card summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .talent-card summary::after {
+      content: "＋";
+      margin-left: auto;
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    .talent-card[open] summary::after {
+      content: "－";
+    }
+
+    .talent-rank {
+      flex: 0 0 auto;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: #586d5d;
+      font-size: 10px;
+    }
+
+    .talent-description {
+      padding: 0 12px 11px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    /* =========================
        关系
        ========================= */
 
@@ -513,12 +616,24 @@
           <div class="stat-grid" id="attributes"></div>
 
           <h3 class="section-title" style="margin-top:20px;">
+            本轮变化
+          </h3>
+
+          <div class="change-list" id="turn-changes"></div>
+
+          <h3 class="section-title" style="margin-top:20px;">
             当前状态
           </h3>
 
           <div class="info-list" id="condition-info"></div>
 
           <div class="tag-list" id="status-tags"></div>
+
+          <h3 class="section-title" style="margin-top:20px;">
+            天赋技能
+          </h3>
+
+          <div class="talent-list" id="talent-list"></div>
 
         </div>
 
@@ -614,7 +729,8 @@
       satiety: 80, cleanliness: 80, mood: "平静释然",
       sleeping: true, temp_status: "无", perm_status: "无"
     },
-    growth: { experience: 20, talents: "暂无" },
+    growth: { experience: 20, talents: ["天生丽质（S级）：魅力成长效率+100%；初次见面获得额外优势", "天生聪慧（A级）：学习行动效率+80%"] },
+    turn_changes: [{ label: "魅力", delta: 2 }, { label: "精力", delta: -5 }],
     appearance: { height: "—", weight: "—", clothes: "—", temperament: "—" },
     family: {
       income_level: "—", education_style: "—", parent_personality: "—",
@@ -681,6 +797,54 @@
     }).join("");
   }
 
+  function normalizeTalents(value) {
+    if (Array.isArray(value)) return value.filter(Boolean).map(String);
+    const single = text(value, "").trim();
+    return single && single !== "暂无" ? [single] : [];
+  }
+
+  function parseTalent(value) {
+    const raw = text(value, "").trim();
+    const match = raw.match(/^(.+?)(?:[（(]([SABCD])级[）)])?(?:[：:]([\s\S]*))?$/i);
+    return {
+      name: (match?.[1] || raw || "未命名天赋").trim(),
+      rank: (match?.[2] || "").toUpperCase(),
+      description: (match?.[3] || "").trim()
+    };
+  }
+
+  function renderTalents(value) {
+    const talents = normalizeTalents(value).map(parseTalent);
+    $("talent-list").innerHTML = talents.length
+      ? talents.map(talent => `
+          <details class="talent-card">
+            <summary>
+              ${talent.rank ? `<span class="talent-rank">${escapeHTML(talent.rank)}级</span>` : ""}
+              <span>${escapeHTML(talent.name)}</span>
+            </summary>
+            <div class="talent-description">${escapeHTML(talent.description || "暂无详细效果说明")}</div>
+          </details>`).join("")
+      : `<div class="empty">暂无天赋技能</div>`;
+  }
+
+  function renderTurnChanges(changes) {
+    const list = Array.isArray(changes) ? changes : [];
+    $("turn-changes").innerHTML = list.length
+      ? list.map(change => {
+          const delta = Number(change.delta);
+          const hasDelta = Number.isFinite(delta);
+          const kind = hasDelta ? (delta > 0 ? "positive" : delta < 0 ? "negative" : "neutral") : "neutral";
+          const value = hasDelta
+            ? `${delta > 0 ? "+" : ""}${delta}`
+            : text(change.text, "已更新");
+          return `<span class="change-chip ${kind}">
+            <span>${escapeHTML(text(change.label, "状态"))}</span>
+            <span class="change-delta">${escapeHTML(value)}</span>
+          </span>`;
+        }).join("")
+      : `<span class="change-chip neutral">本轮暂无数值变化</span>`;
+  }
+
   function renderCharacter(data) {
     const a = data.attributes || {};
     const c = data.condition || {};
@@ -702,7 +866,6 @@
       row("清洁", text(c.cleanliness, 0)),
       row("睡眠", c.sleeping === true ? "睡眠中" : "清醒"),
       row("零花钱", text(data.resources?.money, 0)),
-      row("天赋", text(g.talents, "暂无")),
       row("身高", text(ap.height)),
       row("体重", text(ap.weight)),
       row("衣着", text(ap.clothes)),
@@ -783,6 +946,8 @@
 
     renderCore(c);
     renderCharacter(data);
+    renderTurnChanges(data.turn_changes);
+    renderTalents(g.talents);
     renderSchool(data);
     renderRelations(data);
     renderItems(data);
@@ -823,7 +988,7 @@
       window.parent.postMessage({
         source: "student-sim-status-ui",
         type: "STATUS_UI_READY",
-        version: "1.4C-UI"
+        version: "1.5-UI"
       }, "*");
     }
   }
@@ -838,7 +1003,7 @@
     window.parent.postMessage({
       source: "student-sim-status-ui",
       type: "STATUS_HEIGHT",
-      version: "1.4C-UI",
+      version: "1.5-UI",
       height
     }, "*");
   }
@@ -880,7 +1045,7 @@
   activatePage("character");
   notifyParentReady();
 
-  console.log("[学生时代模拟器][远程状态栏] V1.4C-UI 已启动。");
+  console.log("[学生时代模拟器][远程状态栏] V1.5-UI 已启动。");
 })();
   </script>
 
