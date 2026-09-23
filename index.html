@@ -501,6 +501,150 @@
       letter-spacing: .08em;
     }
 
+    .hidden {
+      display: none !important;
+    }
+
+    .registration-panel {
+      padding: 22px;
+    }
+
+    .registration-heading {
+      margin-bottom: 18px;
+    }
+
+    .registration-title {
+      margin: 0;
+      font-family: Georgia, "Noto Serif SC", serif;
+      font-size: 25px;
+      font-weight: 600;
+    }
+
+    .registration-subtitle {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .form-section {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .form-grid.attributes-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 11px;
+      background: rgba(255,255,255,.72);
+      color: var(--ink);
+      font: inherit;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .field textarea {
+      min-height: 96px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(116,140,120,.12);
+    }
+
+    .age-preview,
+    .form-note,
+    .form-message {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .form-message {
+      min-height: 18px;
+      margin-top: 12px;
+    }
+
+    .form-message.error {
+      color: var(--danger);
+    }
+
+    .form-message.success {
+      color: #56725d;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 9px;
+      margin-top: 15px;
+    }
+
+    .button {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 16px;
+      background: var(--paper-2);
+      color: var(--ink);
+      cursor: pointer;
+      font: inherit;
+      font-size: 12px;
+    }
+
+    .button.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: white;
+    }
+
+    .button:disabled {
+      cursor: wait;
+      opacity: .6;
+    }
+
+    .footer-button {
+      margin-left: 8px;
+      border: 0;
+      background: transparent;
+      color: #8d9d90;
+      cursor: pointer;
+      font: inherit;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
     @media (max-width: 560px) {
       body {
         padding: 8px;
@@ -518,6 +662,15 @@
         grid-template-columns: repeat(3, 1fr);
       }
 
+      .registration-panel {
+        padding: 17px 14px;
+      }
+
+      .form-grid,
+      .form-grid.attributes-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
       .hero,
       .summary,
       .core,
@@ -532,7 +685,100 @@
 <body>
 
   <main class="app">
-    <section class="panel">
+    <section class="panel registration-panel hidden" id="registration-panel">
+      <form id="registration-form" novalidate>
+        <div class="registration-heading">
+          <h1 class="registration-title">入学登记表</h1>
+          <p class="registration-subtitle">
+            这些内容会直接写入当前聊天存档，不经过正文模型识别。完成后将自动进入状态页面。
+          </p>
+        </div>
+
+        <section class="form-section">
+          <h3 class="section-title">基本资料</h3>
+          <div class="form-grid">
+            <div class="field">
+              <label for="reg-name">姓名 *</label>
+              <input id="reg-name" maxlength="30" autocomplete="off" required />
+            </div>
+            <div class="field">
+              <label for="reg-gender">性别 *</label>
+              <select id="reg-gender" required>
+                <option value="">请选择</option>
+                <option value="男">男</option>
+                <option value="女">女</option>
+                <option value="其他">其他</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="reg-birthday">出生日期 *</label>
+              <input id="reg-birthday" type="date" required />
+              <div class="age-preview" id="reg-age-preview">开局年龄：—</div>
+            </div>
+            <div class="field">
+              <label for="reg-height">身高（cm，可选）</label>
+              <input id="reg-height" type="number" min="30" max="250" step="0.1" />
+            </div>
+            <div class="field">
+              <label for="reg-weight">体重（kg，可选）</label>
+              <input id="reg-weight" type="number" min="2" max="300" step="0.1" />
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h3 class="section-title">主要属性</h3>
+          <div class="form-grid attributes-grid">
+            <div class="field"><label for="reg-iq">智商</label><input id="reg-iq" type="number" min="0" max="900" value="50" required /></div>
+            <div class="field"><label for="reg-eq">情商</label><input id="reg-eq" type="number" min="0" max="900" value="50" required /></div>
+            <div class="field"><label for="reg-physique">体魄</label><input id="reg-physique" type="number" min="0" max="900" value="50" required /></div>
+            <div class="field"><label for="reg-charm">魅力</label><input id="reg-charm" type="number" min="0" max="900" value="50" required /></div>
+            <div class="field"><label for="reg-luck">幸运</label><input id="reg-luck" type="number" min="0" max="900" value="50" required /></div>
+          </div>
+          <div class="form-note" style="margin-top:8px;">属性会原样写入，后续上限仍由世界书阶段规则控制。</div>
+        </section>
+
+        <section class="form-section">
+          <h3 class="section-title">天赋与外观</h3>
+          <div class="form-grid">
+            <div class="field full">
+              <label for="reg-talents">天赋（每行一项）</label>
+              <textarea id="reg-talents" placeholder="例：天生聪慧（A级）：学习效率提升&#10;天生丽质（S级）：魅力成长效率提升"></textarea>
+            </div>
+            <div class="field">
+              <label for="reg-clothes">初始衣着</label>
+              <input id="reg-clothes" maxlength="200" />
+            </div>
+            <div class="field">
+              <label for="reg-temperament">初始气质</label>
+              <input id="reg-temperament" maxlength="200" />
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h3 class="section-title">家庭资料（可选）</h3>
+          <div class="form-grid">
+            <div class="field"><label for="reg-father-name">父亲姓名</label><input id="reg-father-name" maxlength="30" /></div>
+            <div class="field"><label for="reg-mother-name">母亲姓名</label><input id="reg-mother-name" maxlength="30" /></div>
+            <div class="field"><label for="reg-income">父母收入水平</label><input id="reg-income" maxlength="100" /></div>
+            <div class="field"><label for="reg-education">教育风格</label><input id="reg-education" maxlength="200" /></div>
+            <div class="field full">
+              <label for="reg-parent-personality">父母性格（可用顿号或换行分隔）</label>
+              <textarea id="reg-parent-personality"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <div class="form-message" id="registration-message"></div>
+        <div class="form-actions">
+          <button class="button hidden" id="registration-cancel" type="button">取消修改</button>
+          <button class="button primary" id="registration-submit" type="submit">开始游戏</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel" id="status-panel">
 
       <!-- 顶部世界信息 -->
       <header class="hero">
@@ -680,6 +926,7 @@
 
       <footer class="footer">
         STUDENT ERA · STATUS
+        <button type="button" class="footer-button" id="edit-registration">修改登记资料</button>
       </footer>
 
     </section>
@@ -707,6 +954,91 @@
 
   let currentData = null;
   let hasReceivedRealData = false;
+  let registrationPopulated = false;
+  let registrationEditing = false;
+  let registrationSubmitting = false;
+
+  function parseDateParts(value) {
+    const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return null;
+    return { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) };
+  }
+
+  function calculateAge(birthday, currentDate) {
+    const birth = parseDateParts(birthday);
+    const current = parseDateParts(currentDate);
+    if (!birth || !current) return null;
+    let age = current.year - birth.year;
+    if (current.month < birth.month || (current.month === birth.month && current.day < birth.day)) age--;
+    return Number.isInteger(age) && age >= 0 ? age : null;
+  }
+
+  function updateAgePreview() {
+    const age = calculateAge($("reg-birthday")?.value, currentData?.world?.date || "2003-08-27");
+    setText("reg-age-preview", age === null ? "开局年龄：—" : `当前剧情日期年龄：${age}岁`);
+  }
+
+  function populateRegistration(data, force = false) {
+    if (registrationPopulated && !force) return;
+    const player = data?.player || {};
+    const attrs = data?.attributes || {};
+    const growth = data?.growth || {};
+    const appearance = data?.appearance || {};
+    const family = data?.family || {};
+
+    $("reg-name").value = player.name === "未登记" ? "" : text(player.name, "");
+    const gender = text(player.gender, "");
+    if ([...$("reg-gender").options].some(option => option.value === gender)) {
+      $("reg-gender").value = gender;
+    } else {
+      $("reg-gender").value = gender ? "其他" : "";
+    }
+    $("reg-birthday").value = /^\d{4}-\d{2}-\d{2}$/.test(text(player.birthday, ""))
+      ? player.birthday
+      : "1996-08-27";
+    $("reg-height").value = Number.isFinite(Number(appearance.height)) ? appearance.height : "";
+    $("reg-weight").value = Number.isFinite(Number(appearance.weight)) ? appearance.weight : "";
+    $("reg-iq").value = text(attrs.iq, 50);
+    $("reg-eq").value = text(attrs.eq, 50);
+    $("reg-physique").value = text(attrs.physique, 50);
+    $("reg-charm").value = text(attrs.charm, 50);
+    $("reg-luck").value = text(attrs.luck, 50);
+    $("reg-talents").value = normalizeTalents(growth.talents).join("\n");
+    $("reg-clothes").value = text(appearance.clothes, "") === "—" ? "" : text(appearance.clothes, "");
+    $("reg-temperament").value = text(appearance.temperament, "") === "—" ? "" : text(appearance.temperament, "");
+    $("reg-father-name").value = text(family.father?.name, "") === "父亲" ? "" : text(family.father?.name, "");
+    $("reg-mother-name").value = text(family.mother?.name, "") === "母亲" ? "" : text(family.mother?.name, "");
+    $("reg-income").value = text(family.income_level, "") === "—" ? "" : text(family.income_level, "");
+    $("reg-education").value = text(family.education_style, "") === "—" ? "" : text(family.education_style, "");
+    $("reg-parent-personality").value = text(family.parent_personality, "") === "—" ? "" : text(family.parent_personality, "");
+
+    registrationPopulated = true;
+    updateAgePreview();
+  }
+
+  function showRegistration(data, editing = false) {
+    registrationEditing = editing;
+    populateRegistration(data, editing);
+    $("registration-panel").classList.remove("hidden");
+    $("status-panel").classList.add("hidden");
+    $("registration-cancel").classList.toggle("hidden", !editing);
+    $("registration-submit").textContent = editing ? "保存修改" : "开始游戏";
+    setRegistrationMessage("");
+    requestHeightReport();
+  }
+
+  function showStatus() {
+    registrationEditing = false;
+    $("registration-panel").classList.add("hidden");
+    $("status-panel").classList.remove("hidden");
+    requestHeightReport();
+  }
+
+  function setRegistrationMessage(message, kind = "") {
+    const element = $("registration-message");
+    element.textContent = message || "";
+    element.className = `form-message${kind ? ` ${kind}` : ""}`;
+  }
 
   const demoData = {
     world: {
@@ -928,6 +1260,12 @@
     if (!data || typeof data !== "object") return;
     currentData = data;
 
+    if (data.registration?.required === true && !registrationEditing) {
+      showRegistration(data, false);
+    } else if (data.registration?.required !== true && !registrationEditing) {
+      showStatus();
+    }
+
     const w = data.world || {};
     const p = data.player || {};
     const c = data.condition || {};
@@ -988,7 +1326,7 @@
       window.parent.postMessage({
         source: "student-sim-status-ui",
         type: "STATUS_UI_READY",
-        version: "1.5-UI"
+        version: "1.6-UI"
       }, "*");
     }
   }
@@ -1003,7 +1341,7 @@
     window.parent.postMessage({
       source: "student-sim-status-ui",
       type: "STATUS_HEIGHT",
-      version: "1.5-UI",
+      version: "1.6-UI",
       height
     }, "*");
   }
@@ -1012,10 +1350,95 @@
     heightTimer = setTimeout(reportHeight, 30);
   }
 
+  function registrationPayloadFromForm() {
+    return {
+      name: $("reg-name").value,
+      gender: $("reg-gender").value,
+      birthday: $("reg-birthday").value,
+      attributes: {
+        iq: $("reg-iq").value,
+        eq: $("reg-eq").value,
+        physique: $("reg-physique").value,
+        charm: $("reg-charm").value,
+        luck: $("reg-luck").value
+      },
+      talents: $("reg-talents").value.split(/\n+/).map(value => value.trim()).filter(Boolean),
+      appearance: {
+        height: $("reg-height").value,
+        weight: $("reg-weight").value,
+        clothes: $("reg-clothes").value,
+        temperament: $("reg-temperament").value
+      },
+      family: {
+        father_name: $("reg-father-name").value,
+        mother_name: $("reg-mother-name").value,
+        income_level: $("reg-income").value,
+        education_style: $("reg-education").value,
+        parent_personality: $("reg-parent-personality").value
+      }
+    };
+  }
+
+  $("reg-birthday").addEventListener("change", updateAgePreview);
+
+  $("registration-form").addEventListener("submit", event => {
+    event.preventDefault();
+    if (registrationSubmitting) return;
+
+    if (!event.currentTarget.reportValidity()) {
+      setRegistrationMessage("请补全必填项目并检查数字范围。", "error");
+      requestHeightReport();
+      return;
+    }
+
+    if (!(window.parent && window.parent !== window)) {
+      setRegistrationMessage("当前页面没有连接到酒馆状态栏系统。", "error");
+      return;
+    }
+
+    registrationSubmitting = true;
+    $("registration-submit").disabled = true;
+    setRegistrationMessage("正在保存登记资料……");
+
+    window.parent.postMessage({
+      source: "student-sim-status-ui",
+      type: "REGISTRATION_SUBMIT",
+      version: "1.6-UI",
+      payload: registrationPayloadFromForm()
+    }, "*");
+  });
+
+  $("registration-cancel").addEventListener("click", () => {
+    registrationPopulated = false;
+    showStatus();
+  });
+
+  $("edit-registration").addEventListener("click", () => {
+    if (currentData) showRegistration(currentData, true);
+  });
+
   window.addEventListener("message", event => {
     const message = event.data;
     if (!message || typeof message !== "object") return;
-    if (message.source !== "student-sim" || message.type !== "STATUS_UPDATE") return;
+    if (message.source !== "student-sim") return;
+
+    if (message.type === "REGISTRATION_RESULT") {
+      registrationSubmitting = false;
+      $("registration-submit").disabled = false;
+
+      if (message.ok === true) {
+        registrationEditing = false;
+        registrationPopulated = false;
+        setRegistrationMessage(message.message || "登记成功。", "success");
+      } else {
+        setRegistrationMessage(message.message || "登记失败，请检查填写内容。", "error");
+      }
+
+      requestHeightReport();
+      return;
+    }
+
+    if (message.type !== "STATUS_UPDATE") return;
 
     const data = message.payload;
     if (!isValidStudentStatusData(data)) {
@@ -1045,7 +1468,7 @@
   activatePage("character");
   notifyParentReady();
 
-  console.log("[学生时代模拟器][远程状态栏] V1.5-UI 已启动。");
+  console.log("[学生时代模拟器][远程状态栏] V1.6-UI + 首次登记表已启动。");
 })();
   </script>
 
