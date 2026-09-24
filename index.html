@@ -724,7 +724,16 @@
 
         <section class="form-section">
           <h3 class="section-title">基本资料</h3>
-          <div class="form-grid">
+          <div class="form-grid basic-grid">
+            <div class="field full">
+              <label for="reg-start-stage">开场阶段 *</label>
+              <select id="reg-start-stage" required>
+                <option value="primary">小学入学（2003年9月）</option>
+                <option value="middle">初中入学（2008年9月）</option>
+                <option value="high">高中入学（2011年9月）</option>
+              </select>
+              <div class="age-preview" id="reg-start-preview">开场：小学一年级入学日</div>
+            </div>
             <div class="field">
               <label for="reg-name">姓名 *</label>
               <input id="reg-name" maxlength="30" autocomplete="off" required />
@@ -738,7 +747,7 @@
                 <option value="其他">其他</option>
               </select>
             </div>
-            <div class="field">
+            <div class="field full">
               <label for="reg-birthday">出生日期 *</label>
               <input id="reg-birthday" type="date" required />
               <div class="age-preview" id="reg-age-preview">开局年龄：—</div>
@@ -986,6 +995,12 @@
   let registrationEditing = false;
   let registrationSubmitting = false;
 
+  const START_PRESETS = {
+    primary: { date: "2003-09-01", label: "小学一年级入学日" },
+    middle: { date: "2008-09-01", label: "初中一年级入学日" },
+    high: { date: "2011-09-01", label: "高中一年级入学日" }
+  };
+
   function parseDateParts(value) {
     const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (!match) return null;
@@ -1002,8 +1017,19 @@
   }
 
   function updateAgePreview() {
-    const age = calculateAge($("reg-birthday")?.value, currentData?.world?.date || "2003-08-27");
-    setText("reg-age-preview", age === null ? "开局年龄：—" : `当前剧情日期年龄：${age}岁`);
+    const stage = $("reg-start-stage")?.value || "primary";
+    const preset = START_PRESETS[stage] || START_PRESETS.primary;
+    const date = registrationEditing ? (currentData?.world?.date || preset.date) : preset.date;
+    const age = calculateAge($("reg-birthday")?.value, date);
+    setText("reg-age-preview", age === null ? "开局年龄：—" : `开局年龄：${age}岁`);
+    setText("reg-start-preview", `开场：${preset.label} · ${preset.date}`);
+  }
+
+  function inferStartStage(data) {
+    const saved = data?.registration?.start_stage;
+    if (START_PRESETS[saved]) return saved;
+    const stage = text(data?.school?.stage, "小学");
+    return stage === "高中" ? "high" : stage === "初中" ? "middle" : "primary";
   }
 
   function populateRegistration(data, force = false) {
@@ -1013,6 +1039,8 @@
     const growth = data?.growth || {};
     const appearance = data?.appearance || {};
     const family = data?.family || {};
+
+    $("reg-start-stage").value = inferStartStage(data);
 
     $("reg-name").value = player.name === "未登记" ? "" : text(player.name, "");
     const gender = text(player.gender, "");
@@ -1051,6 +1079,7 @@
     $("status-panel").classList.add("hidden");
     $("registration-cancel").classList.toggle("hidden", !editing);
     $("registration-submit").textContent = editing ? "保存修改" : "开始游戏";
+    $("reg-start-stage").disabled = editing;
     setRegistrationMessage("");
     requestHeightReport();
   }
@@ -1362,7 +1391,7 @@
       window.parent.postMessage({
         source: "student-sim-status-ui",
         type: "STATUS_UI_READY",
-        version: "1.7-UI"
+        version: "1.9-UI"
       }, "*");
     }
   }
@@ -1377,7 +1406,7 @@
     window.parent.postMessage({
       source: "student-sim-status-ui",
       type: "STATUS_HEIGHT",
-      version: "1.7-UI",
+      version: "1.9-UI",
       height
     }, "*");
   }
@@ -1388,6 +1417,7 @@
 
   function registrationPayloadFromForm() {
     return {
+      start_stage: $("reg-start-stage").value,
       name: $("reg-name").value,
       gender: $("reg-gender").value,
       birthday: $("reg-birthday").value,
@@ -1416,6 +1446,7 @@
   }
 
   $("reg-birthday").addEventListener("change", updateAgePreview);
+  $("reg-start-stage").addEventListener("change", updateAgePreview);
 
   $("registration-form").addEventListener("submit", event => {
     event.preventDefault();
@@ -1439,7 +1470,7 @@
     window.parent.postMessage({
       source: "student-sim-status-ui",
       type: "REGISTRATION_SUBMIT",
-      version: "1.7-UI",
+      version: "1.9-UI",
       payload: registrationPayloadFromForm()
     }, "*");
   });
