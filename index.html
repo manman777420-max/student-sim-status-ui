@@ -1067,7 +1067,8 @@
     family: {
       income_level: "—", education_style: "—", parent_personality: "—",
       father: { name: "江父", relation: "父亲", favor: 70, impression: "" },
-      mother: { name: "江母", relation: "母亲", favor: 72, impression: "" }
+      mother: { name: "江母", relation: "母亲", favor: 72, impression: "" },
+      siblings: []
     },
     school: {
       school_name: "阳光小学", stage: "小学", grade: 1, semester: "入学前",
@@ -1229,7 +1230,8 @@
 
   function renderRelations(data) {
     const f = data.family || {};
-    const family = [f.father, f.mother].filter(Boolean);
+    const siblings = Array.isArray(f.siblings) ? f.siblings : [];
+    const family = [f.father, f.mother, ...siblings].filter(Boolean);
     $("family-relations").innerHTML = family.length
       ? family.map(relationCard).join("")
       : `<div class="empty">暂无家庭关系数据</div>`;
@@ -1326,7 +1328,7 @@
       window.parent.postMessage({
         source: "student-sim-status-ui",
         type: "STATUS_UI_READY",
-        version: "1.6-UI"
+        version: "1.7-UI"
       }, "*");
     }
   }
@@ -1341,7 +1343,7 @@
     window.parent.postMessage({
       source: "student-sim-status-ui",
       type: "STATUS_HEIGHT",
-      version: "1.6-UI",
+      version: "1.7-UI",
       height
     }, "*");
   }
@@ -1403,7 +1405,7 @@
     window.parent.postMessage({
       source: "student-sim-status-ui",
       type: "REGISTRATION_SUBMIT",
-      version: "1.6-UI",
+      version: "1.7-UI",
       payload: registrationPayloadFromForm()
     }, "*");
   });
@@ -1468,7 +1470,7 @@
   activatePage("character");
   notifyParentReady();
 
-  console.log("[学生时代模拟器][远程状态栏] V1.6-UI + 首次登记表已启动。");
+  console.log("[学生时代模拟器][远程状态栏] V1.7-UI + 家庭学校背包升级已启动。");
 })();
   </script>
 
