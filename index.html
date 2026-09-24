@@ -465,24 +465,52 @@
     }
 
     .item {
-      padding: 12px 13px;
+      overflow: hidden;
       border: 1px solid var(--line);
       border-radius: 12px;
     }
 
     .item-head {
       display: flex;
+      align-items: center;
       justify-content: space-between;
       gap: 12px;
+      padding: 12px 13px;
       font-size: 13px;
       font-weight: 600;
     }
 
+    details.item > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+
+    details.item > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .item-count {
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
+    details.item > summary::after {
+      content: "＋";
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    details.item[open] > summary::after {
+      content: "－";
+    }
+
     .item-description {
-      margin-top: 5px;
+      padding: 0 13px 12px;
       color: var(--muted);
       font-size: 11px;
-      line-height: 1.5;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
     }
 
     .empty {
@@ -1247,13 +1275,19 @@
   function renderItems(data) {
     const items = Array.isArray(data.resources?.items) ? data.resources.items : [];
     $("item-list").innerHTML = items.length
-      ? items.map(item => `
+      ? items.map(item => item.description ? `
+          <details class="item">
+            <summary class="item-head">
+              <span>${escapeHTML(text(item.name, "未命名物品"))}</span>
+              <span class="item-count">× ${escapeHTML(text(item.count, 0))}</span>
+            </summary>
+            <div class="item-description">${escapeHTML(item.description)}</div>
+          </details>` : `
           <div class="item">
             <div class="item-head">
               <span>${escapeHTML(text(item.name, "未命名物品"))}</span>
-              <span>× ${escapeHTML(text(item.count, 0))}</span>
+              <span class="item-count">× ${escapeHTML(text(item.count, 0))}</span>
             </div>
-            ${item.description ? `<div class="item-description">${escapeHTML(item.description)}</div>` : ""}
           </div>`).join("")
       : `<div class="empty">背包里暂时没有物品</div>`;
   }
@@ -1470,7 +1504,7 @@
   activatePage("character");
   notifyParentReady();
 
-  console.log("[学生时代模拟器][远程状态栏] V1.7-UI + 家庭学校背包升级已启动。");
+  console.log("[学生时代模拟器][远程状态栏] V1.8-UI + 背包备注折叠已启动。");
 })();
   </script>
 
